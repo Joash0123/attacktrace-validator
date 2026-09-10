@@ -1,4 +1,6 @@
-# Adversary Detection Validator
+# AttackTrace
+
+**Adversary Detection Validation Framework**
 
 A Windows-focused cybersecurity project that validates whether controlled PowerShell activity generates the expected defensive telemetry.
 
