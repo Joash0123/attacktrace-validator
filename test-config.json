@@ -1,0 +1,7 @@
+{
+  "technique_id": "T1059.001",
+  "technique_name": "PowerShell",
+  "test_name": "controlled-powershell-marker",
+  "event_id": 4104,
+  "marker": "ADV_DETECTION_VALIDATOR_T1059_001"
+}
