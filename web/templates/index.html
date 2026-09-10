@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adversary Detection Validator</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #080b0f;
+            --panel: #10151b;
+            --panel-2: #0c1116;
+            --border: #202832;
+            --text: #edf2f7;
+            --muted: #7f8c9b;
+            --accent: #62d39b;
+            --danger: #e47b7b;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(circle at 80% 0%, #14221d 0, transparent 30%),
+                var(--bg);
+            color: var(--text);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+                BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        button {
+            font: inherit;
+        }
+
+        .shell {
+            width: min(1180px, calc(100% - 40px));
+            margin: auto;
+            padding: 28px 0 50px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 28px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .brand-mark {
+            width: 40px;
+            height: 40px;
+            display: grid;
+            place-items: center;
+            border: 1px solid #355244;
+            border-radius: 9px;
+            color: var(--accent);
+            background: #0e1713;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .brand-name {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .brand-subtitle {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .system-state {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #9cacba;
+            font-size: 11px;
+        }
+
+        .state-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 12px rgba(98,211,155,.45);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.4fr .8fr;
+            gap: 60px;
+            padding: 70px 0 45px;
+            align-items: center;
+        }
+
+        .eyebrow {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            color: var(--accent);
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .eyebrow-line {
+            width: 24px;
+            height: 1px;
+            background: var(--accent);
+        }
+
+        h1 {
+            max-width: 650px;
+            margin: 16px 0;
+            font-size: clamp(38px, 5vw, 64px);
+            line-height: .98;
+            letter-spacing: -3px;
+            font-weight: 700;
+        }
+
+        h1 span {
+            color: var(--accent);
+        }
+
+        .hero-description {
+            max-width: 620px;
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+            font-size: 14px;
+        }
+
+        .hero-actions {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin-top: 30px;
+        }
+
+        .run-button {
+            border: 0;
+            border-radius: 8px;
+            padding: 13px 19px;
+            background: var(--accent);
+            color: #07100c;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .run-button:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.05);
+        }
+
+        .run-button:disabled {
+            opacity: .55;
+            cursor: wait;
+        }
+
+        .run-icon {
+            margin-right: 7px;
+        }
+
+        .hero-note {
+            color: #687583;
+            font-size: 10px;
+        }
+
+        .technical-panel,
+        .result-panel,
+        .history-panel,
+        .trend-panel,
+        .details-panel {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--panel);
+        }
+
+        .technical-panel {
+            overflow: hidden;
+        }
+
+        .technical-header {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 17px;
+            border-bottom: 1px solid var(--border);
+            color: #a7b3bf;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .technical-live {
+            color: var(--accent);
+        }
+
+        .technical-body {
+            padding: 5px 17px;
+        }
+
+        .technical-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid #182028;
+        }
+
+        .technical-row:last-child {
+            border-bottom: 0;
+        }
+
+        .technical-label {
+            color: #687583;
+            font-size: 11px;
+        }
+
+        .technical-value,
+        .detail-item strong,
+        .metric-value,
+        .mono {
+            font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        }
+
+        .technical-value {
+            color: #dce4eb;
+            font-size: 11px;
+        }
+
+        .result-panel {
+            padding: 24px;
+            transition: .2s;
+        }
+
+        .result-panel.pass {
+            border-color: #28543f;
+            background: #0d1713;
+        }
+
+        .result-panel.fail {
+            border-color: #593434;
+            background: #180f0f;
+        }
+
+        .result-top,
+        .panel-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .result-top {
+            margin-bottom: 20px;
+        }
+
+        .section-label {
+            color: #71808e;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        .result-state {
+            color: #71808e;
+            font-size: 10px;
+        }
+
+        .result-content {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .result-symbol {
+            width: 48px;
+            height: 48px;
+            display: grid;
+            place-items: center;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--accent);
+            font-size: 22px;
+        }
+
+        .result-title {
+            margin: 0 0 5px;
+            font-size: 21px;
+        }
+
+        .result-message {
+            margin: 0;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .stats,
+        .metrics,
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .stats {
+            margin: 18px 0;
+        }
+
+        .stat {
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--panel-2);
+        }
+
+        .stat-label,
+        .metric-label,
+        .detail-item span {
+            color: #687583;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            margin-top: 8px;
+            font-size: 27px;
+            font-weight: 700;
+        }
+
+        .metrics {
+            margin: 18px 0 35px;
+        }
+
+        .metric {
+            padding: 17px;
+            border-left: 2px solid #28333e;
+            background: #0c1116;
+        }
+
+        .metric-value {
+            margin-top: 7px;
+            color: #dfe7ee;
+            font-size: 13px;
+        }
+
+        /* VALIDATION DETAILS */
+
+        .details-panel {
+            margin-bottom: 18px;
+            padding: 22px;
+        }
+
+        .details-panel .panel-heading {
+            margin-bottom: 18px;
+        }
+
+        .details-panel .panel-heading h2 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .details-panel .panel-heading span {
+            color: #687583;
+            font-size: 10px;
+        }
+
+        .details-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .detail-item {
+            padding: 15px;
+            border: 1px solid #1b242d;
+            border-radius: 8px;
+            background: #0c1116;
+        }
+
+        .detail-item span {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 9px;
+        }
+
+        .detail-item strong {
+            color: #dce4eb;
+            font-size: 12px;
+        }
+
+        .history-panel {
+            overflow: hidden;
+        }
+
+        .history-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 21px 22px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .history-title h2 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .history-count {
+            color: #687583;
+            font-size: 10px;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 7px;
+        }
+
+        .small-button {
+            padding: 7px 10px;
+            border: 1px solid #2a3540;
+            border-radius: 6px;
+            background: #11171d;
+            color: #9aa8b6;
+            font-size: 10px;
+            cursor: pointer;
+        }
+
+        .small-button:hover {
+            color: var(--text);
+            border-color: #4c5c6c;
+        }
+
+        .small-button.danger:hover {
+            border-color: #744444;
+            color: #e7a0a0;
+        }
+
+        .history-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            padding: 13px 22px;
+            color: #63717e;
+            text-align: left;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 15px 22px;
+            border-top: 1px solid #182028;
+            color: #aeb9c4;
+            font-size: 11px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: .6px;
+        }
+
+        .badge.pass {
+            background: #153225;
+            color: var(--accent);
+        }
+
+        .badge.fail {
+            background: #351919;
+            color: #e58b8b;
+        }
+
+        .empty {
+            padding: 35px;
+            text-align: center;
+            color: #65717d;
+        }
+
+        .trend-panel {
+            margin-top: 18px;
+            padding: 22px;
+        }
+
+        .panel-heading {
+            margin-bottom: 20px;
+        }
+
+        .panel-heading h2 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .panel-heading span {
+            color: #687583;
+            font-size: 10px;
+        }
+
+        .bars {
+            height: 120px;
+            display: flex;
+            align-items: end;
+            gap: 8px;
+        }
+
+        .bar {
+            flex: 1;
+            min-width: 8px;
+            max-width: 55px;
+            height: 15%;
+            border-radius: 4px 4px 0 0;
+            background: var(--accent);
+            opacity: .8;
+            transition: height .3s;
+        }
+
+        footer {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            color: #4f5c68;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 800px) {
+            .hero {
+                grid-template-columns: 1fr;
+                gap: 35px;
+                padding-top: 45px;
+            }
+
+            .stats,
+            .metrics,
+            .details-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .history-heading {
+                align-items: flex-start;
+                gap: 15px;
+                flex-direction: column;
+            }
+
+            .hero-actions {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .shell {
+                width: min(100% - 24px, 1180px);
+            }
+
+            h1 {
+                letter-spacing: -2px;
+            }
+
+            .history-actions {
+                flex-wrap: wrap;
+            }
+
+            footer {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="shell">
+
+    <header class="topbar">
+        <div class="brand">
+            <div class="brand-mark">ADV</div>
+            <div>
+                <div class="brand-name">Adversary Detection Validator</div>
+                <div class="brand-subtitle">Controlled detection assurance</div>
+            </div>
+        </div>
+
+        <div class="system-state">
+            <span class="state-dot"></span>
+            <span id="systemStatus">Ready</span>
+        </div>
+    </header>
+
+    <section class="hero">
+
+        <div>
+            <div class="eyebrow">
+                <span class="eyebrow-line"></span>
+                Detection validation
+            </div>
+
+            <h1>
+                Prove your detection
+                <span>actually works.</span>
+            </h1>
+
+            <p class="hero-description">
+                Execute a controlled PowerShell activity, inspect the
+                expected Windows telemetry, and verify that the detection
+                pipeline identifies it correctly.
+            </p>
+
+            <div class="hero-actions">
+                <button class="run-button" id="runButton" onclick="runValidation()">
+                    <span class="run-icon">▶</span>
+                    Run validation
+                </button>
+
+                <span class="hero-note">
+                    Controlled test · No destructive activity
+                </span>
+            </div>
+        </div>
+
+        <div class="technical-panel">
+
+            <div class="technical-header">
+                <span>Validation target</span>
+                <span class="technical-live" id="technicalStatus">READY</span>
+            </div>
+
+            <div class="technical-body">
+
+                <div class="technical-row">
+                    <span class="technical-label">Technique</span>
+                    <span class="technical-value">{{ technique_id }}</span>
+                </div>
+
+                <div class="technical-row">
+                    <span class="technical-label">Event</span>
+                    <span class="technical-value">4104</span>
+                </div>
+
+                <div class="technical-row">
+                    <span class="technical-label">Platform</span>
+                    <span class="technical-value">Windows</span>
+                </div>
+
+                <div class="technical-row">
+                    <span class="technical-label">Telemetry</span>
+                    <span class="technical-value">PowerShell</span>
+                </div>
+
+            </div>
+        </div>
+
+    </section>
+
+    <section class="result-panel" id="resultBox">
+
+        <div class="result-top">
+            <span class="section-label">Latest validation</span>
+            <span class="result-state" id="resultState">Awaiting run</span>
+        </div>
+
+        <div class="result-content">
+
+            <div class="result-symbol" id="resultSymbol">—</div>
+
+            <div>
+                <h2 class="result-title" id="resultTitle">
+                    Ready to validate
+                </h2>
+
+                <p class="result-message" id="resultMessage">
+                    Run the controlled test to determine whether
+                    the expected telemetry is detected.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+
+    <section class="stats">
+
+        <div class="stat">
+            <div class="stat-label">Total validations</div>
+            <div class="stat-value" id="statTotal">0</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-label">Pass rate</div>
+            <div class="stat-value" id="statPassRate">0%</div>
+        </div>
+
+        <div class="stat">
+            <div class="stat-label">Detections</div>
+            <div class="stat-value" id="statDetections">0</div>
+        </div>
+
+    </section>
+
+    <section class="metrics">
+
+        <div class="metric">
+            <div class="metric-label">ATT&CK technique</div>
+            <div class="metric-value">{{ technique_id }}</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Windows event</div>
+            <div class="metric-value">4104</div>
+        </div>
+
+        <div class="metric">
+            <div class="metric-label">Test profile</div>
+            <div class="metric-value">controlled-marker</div>
+        </div>
+
+    </section>
+
+    <!-- VALIDATION DETAILS -->
+
+    <section class="details-panel">
+
+        <div class="panel-heading">
+            <h2>Validation details</h2>
+            <span id="detailsStatus">No run selected</span>
+        </div>
+
+        <div class="details-grid">
+
+            <div class="detail-item">
+                <span>Technique</span>
+                <strong id="detailTechnique">—</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Event ID</span>
+                <strong id="detailEvent">—</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Test profile</span>
+                <strong id="detailTest">—</strong>
+            </div>
+
+            <div class="detail-item">
+                <span>Detection</span>
+                <strong id="detailDetection">—</strong>
+            </div>
+
+        </div>
+
+    </section>
+
+    <section class="history-panel">
+
+        <div class="history-heading">
+
+            <div class="history-title">
+                <h2>Validation history</h2>
+                <span class="history-count" id="historyCount">0 runs</span>
+            </div>
+
+            <div class="history-actions">
+
+                <button class="small-button" id="exportCsv">
+                    Export CSV
+                </button>
+
+                <button class="small-button" id="exportJson">
+                    Download JSON
+                </button>
+
+                <button class="small-button danger" id="clearHistory">
+                    Clear history
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="history-wrap">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Technique</th>
+                        <th>Event</th>
+                        <th>Detection</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+
+                <tbody id="historyBody">
+                    <tr>
+                        <td colspan="5" class="empty">
+                            Loading validation history...
+                        </td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+    <section class="trend-panel">
+
+        <div class="panel-heading">
+            <h2>Recent validation activity</h2>
+            <span>Latest 12 runs</span>
+        </div>
+
+        <div class="bars" id="trendBars"></div>
+
+    </section>
+
+    <footer>
+        <span>ADVERSARY DETECTION VALIDATOR</span>
+        <span>CONTROLLED VALIDATION ENVIRONMENT</span>
+    </footer>
+
+</div>
+
+<script>
+
+let validationHistory = [];
+
+
+async function getHistory() {
+
+    const response = await fetch("/api/history");
+
+    if (!response.ok) {
+        throw new Error("Unable to load validation history.");
+    }
+
+    return await response.json();
+}
+
+
+function formatTime(timestamp) {
+
+    if (!timestamp) {
+        return "Unknown";
+    }
+
+    const date = new Date(timestamp);
+
+    if (Number.isNaN(date.getTime())) {
+        return timestamp;
+    }
+
+    return date.toLocaleString();
+}
+
+
+function renderDashboard(history) {
+
+    validationHistory = history;
+
+    if (history.length) {
+        renderLatest(history[0]);
+    }
+
+    const passed = history.filter(
+        item => item.result === "PASS"
+    ).length;
+
+    const detections = history.filter(
+        item => item.detected === true
+    ).length;
+
+    const passRate = history.length
+        ? Math.round((passed / history.length) * 100)
+        : 0;
+
+    document.getElementById("statTotal").textContent =
+        history.length;
+
+    document.getElementById("statPassRate").textContent =
+        passRate + "%";
+
+    document.getElementById("statDetections").textContent =
+        detections;
+
+    document.getElementById("historyCount").textContent =
+        `${history.length} ${history.length === 1 ? "run" : "runs"}`;
+
+    renderHistory(history);
+    renderTrend(history);
+}
+
+
+function renderLatest(item) {
+
+    const passed = item.result === "PASS";
+    const hasError = item.error_code;
+    const resultBox = document.getElementById("resultBox");
+
+    resultBox.className = `result-panel ${passed ? "pass" : "fail"}`;
+    document.getElementById("resultSymbol").textContent = passed ? "✓" : "!";
+    document.getElementById("resultTitle").textContent = item.result || "FAIL";
+    document.getElementById("resultState").textContent = passed ? "Detection confirmed" : (hasError ? "Validation error" : "Detection not confirmed");
+    document.getElementById("resultMessage").textContent = passed
+        ? "The expected telemetry was detected successfully."
+        : (item.error_message || "The expected telemetry was not detected.");
+    document.getElementById("systemStatus").textContent = passed ? "Validation passed" : "Validation needs attention";
+    document.getElementById("technicalStatus").textContent = passed ? "PASS" : "FAIL";
+    document.getElementById("detailTechnique").textContent = item.technique || "—";
+    document.getElementById("detailEvent").textContent = item.event_id || "—";
+    document.getElementById("detailTest").textContent = item.test || "—";
+    document.getElementById("detailDetection").textContent = item.detected ? "Detected" : "Not detected";
+    document.getElementById("detailsStatus").textContent = `Latest run · ${formatTime(item.timestamp)}`;
+}
+
+
+function renderHistory(history) {
+
+    const body = document.getElementById("historyBody");
+
+    if (!history.length) {
+
+        body.innerHTML = `
+            <tr>
+                <td colspan="5" class="empty">
+                    No validation runs yet.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    body.innerHTML = history
+        .map(item => {
+
+            const resultClass =
+                item.result === "PASS" ? "pass" : "fail";
+
+            const detection =
+                item.detected ? "Detected" : "Not detected";
+
+            return `
+                <tr>
+                    <td>${formatTime(item.timestamp)}</td>
+                    <td class="mono">${item.technique || "—"}</td>
+                    <td class="mono">${item.event_id || "—"}</td>
+                    <td>${detection}</td>
+                    <td>
+                        <span class="badge ${resultClass}">
+                            ${item.result || "UNKNOWN"}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        })
+        .join("");
+}
+
+
+function renderTrend(history) {
+
+    const container = document.getElementById("trendBars");
+
+    if (!history.length) {
+
+        container.innerHTML =
+            '<span style="color:#687583;font-size:11px;">No validation activity yet.</span>';
+
+        return;
+    }
+
+    const recent = history.slice(0, 12).slice().reverse();
+
+    container.innerHTML = recent.map(item => {
+
+        const passed = item.result === "PASS";
+
+        return `
+            <div
+                class="bar"
+                style="height:${passed ? 90 : 35}%"
+                title="${item.result || "UNKNOWN"} — Event ${item.event_id || "—"}"
+            ></div>
+        `;
+
+    }).join("");
+}
+
+
+async function loadHistory() {
+
+    try {
+
+        const history = await getHistory();
+
+        renderDashboard(history);
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById("historyBody").innerHTML = `
+            <tr>
+                <td colspan="5" class="empty">
+                    Unable to load validation history.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+
+async function runValidation() {
+
+    const button =
+        document.getElementById("runButton");
+
+    const status =
+        document.getElementById("systemStatus");
+
+    const technicalStatus =
+        document.getElementById("technicalStatus");
+
+    const resultBox =
+        document.getElementById("resultBox");
+
+    const resultSymbol =
+        document.getElementById("resultSymbol");
+
+    const resultTitle =
+        document.getElementById("resultTitle");
+
+    const resultMessage =
+        document.getElementById("resultMessage");
+
+    const resultState =
+        document.getElementById("resultState");
+
+
+    button.disabled = true;
+
+    button.innerHTML =
+        '<span class="run-icon">◌</span> Running...';
+
+    status.textContent =
+        "Validation running";
+
+    technicalStatus.textContent =
+        "RUNNING";
+
+    resultState.textContent =
+        "Test in progress";
+
+    resultTitle.textContent =
+        "Validation running";
+
+    resultMessage.textContent =
+        "Executing the controlled test and checking telemetry.";
+
+    resultSymbol.textContent =
+        "…";
+
+
+    try {
+
+        const response =
+            await fetch("/api/validate", {
+                method: "POST"
+            });
+
+        const data = await response.json().catch(() => ({}));
+
+
+        if (!response.ok || !data.success) {
+
+            const messages = {
+                powershell_unavailable: "PowerShell is not available on this Windows host.",
+                telemetry_unavailable: "PowerShell Event ID 4104 telemetry cannot be queried. Check the Operational log and permissions.",
+                logging_disabled: "PowerShell Script Block Logging is disabled. Enable it and run validation again.",
+                execution_failed: "The controlled PowerShell marker could not be executed.",
+                detection_timeout: "The marker ran, but no matching Event ID 4104 telemetry arrived before the timeout."
+            };
+            throw new Error(data.error || messages[data.error_code] || "Validation failed.");
+        }
+
+
+        /* UPDATE VALIDATION DETAILS */
+
+        document.getElementById("detailTechnique").textContent =
+            data.technique || "—";
+
+        document.getElementById("detailEvent").textContent =
+            data.event_id || "—";
+
+        document.getElementById("detailTest").textContent =
+            data.test || "—";
+
+        document.getElementById("detailDetection").textContent =
+            data.detected
+                ? "Detected"
+                : "Not detected";
+
+        document.getElementById("detailsStatus").textContent =
+            "Latest run";
+
+
+        await loadHistory();
+
+
+    } catch (error) {
+
+        resultBox.className =
+            "result-panel fail";
+
+        resultSymbol.textContent =
+            "!";
+
+        resultTitle.textContent =
+            "Validation error";
+
+        resultMessage.textContent = error.message || "The validation service returned an unexpected response.";
+
+        resultState.textContent =
+            "Error";
+
+        status.textContent =
+            "Error";
+
+        technicalStatus.textContent =
+            "ERROR";
+
+        // Failed attempts are persisted too; refresh statistics and history.
+        try {
+            await loadHistory();
+        } catch (historyError) {
+            console.error(historyError);
+        }
+
+
+    } finally {
+
+        button.disabled = false;
+
+        button.innerHTML =
+            '<span class="run-icon">▶</span> Run validation';
+    }
+}
+
+
+/* CSV EXPORT */
+
+document.getElementById("exportCsv").addEventListener(
+    "click",
+    () => {
+
+        if (!validationHistory.length) {
+
+            alert(
+                "There is no validation history to export."
+            );
+
+            return;
+        }
+
+
+        const rows = [
+            [
+                "Timestamp",
+                "Technique",
+                "Event ID",
+                "Detection",
+                "Result"
+            ]
+        ];
+
+
+        validationHistory.forEach(item => {
+
+            rows.push([
+                item.timestamp || "",
+                item.technique || "",
+                item.event_id || "",
+                item.detected
+                    ? "Detected"
+                    : "Not detected",
+                item.result || ""
+            ]);
+
+        });
+
+
+        const csv =
+            rows.map(row =>
+                row.map(value =>
+                    `"${String(value).replace(/"/g, '""')}"`
+                ).join(",")
+            ).join("\n");
+
+
+        const blob =
+            new Blob(
+                [csv],
+                {
+                    type: "text/csv;charset=utf-8"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(blob);
+
+        const link =
+            document.createElement("a");
+
+        link.href = url;
+
+        link.download =
+            "validation-history.csv";
+
+        link.click();
+
+        URL.revokeObjectURL(url);
+    }
+);
+
+
+/* JSON EXPORT */
+
+document.getElementById("exportJson").addEventListener(
+    "click",
+    () => {
+
+        const blob =
+            new Blob(
+                [
+                    JSON.stringify(
+                        validationHistory,
+                        null,
+                        2
+                    )
+                ],
+                {
+                    type: "application/json"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(blob);
+
+        const link =
+            document.createElement("a");
+
+        link.href = url;
+
+        link.download =
+            "validation-history.json";
+
+        link.click();
+
+        URL.revokeObjectURL(url);
+    }
+);
+
+
+/* CLEAR HISTORY */
+
+document.getElementById("clearHistory").addEventListener(
+    "click",
+    async () => {
+
+        if (!validationHistory.length) {
+            return;
+        }
+
+
+        if (!confirm("Clear all validation history?")) {
+            return;
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/history",
+                    {
+                        method: "DELETE"
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Unable to clear history."
+                );
+            }
+
+
+            document.getElementById(
+                "detailsStatus"
+            ).textContent =
+                "No run selected";
+
+
+            document.getElementById(
+                "detailTechnique"
+            ).textContent = "—";
+
+
+            document.getElementById(
+                "detailEvent"
+            ).textContent = "—";
+
+
+            document.getElementById(
+                "detailTest"
+            ).textContent = "—";
+
+
+            document.getElementById(
+                "detailDetection"
+            ).textContent = "—";
+
+
+            await loadHistory();
+
+
+        } catch (error) {
+
+            alert(error.message);
+        }
+    }
+);
+
+
+loadHistory();
+
+</script>
+
+</body>
+</html>

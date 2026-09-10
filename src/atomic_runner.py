@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from datetime import datetime, timezone
 import subprocess
+from uuid import uuid4
 
 
 @dataclass
@@ -7,6 +9,9 @@ class TestExecutionResult:
     test_name: str
     technique_id: str
     success: bool
+    correlation_id: str
+    started_at: datetime
+    finished_at: datetime
     output: str = ""
     error: str = ""
 
@@ -15,29 +20,36 @@ def run_controlled_test(
     test_name: str,
     technique_id: str,
     marker: str,
+    correlation_id: str | None = None,
 ) -> TestExecutionResult:
-    """Execute a harmless PowerShell marker for telemetry validation."""
+    """Execute a harmless, uniquely correlated PowerShell marker."""
 
-    command = [
-        "powershell.exe",
-        "-NoProfile",
-        "-Command",
-        f'Write-Output "{marker}"',
-    ]
+    correlation_id = correlation_id or str(uuid4())
+    emitted_marker = f"{marker}::{correlation_id}"
+    started_at = datetime.now(timezone.utc)
 
-    result = subprocess.run(
-        command,
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
+    try:
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", f'Write-Output "{emitted_marker}"'],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        error, output, success = result.stderr.strip(), result.stdout.strip(), result.returncode == 0
+    except FileNotFoundError:
+        error, output, success = "powershell.exe was not found on this system.", "", False
+    except subprocess.TimeoutExpired:
+        error, output, success = "The controlled PowerShell test timed out.", "", False
 
     return TestExecutionResult(
         test_name=test_name,
         technique_id=technique_id,
-        success=result.returncode == 0,
-        output=result.stdout.strip(),
-        error=result.stderr.strip(),
+        success=success,
+        correlation_id=correlation_id,
+        started_at=started_at,
+        finished_at=datetime.now(timezone.utc),
+        output=output,
+        error=error,
     )
 
 

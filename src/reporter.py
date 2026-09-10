@@ -8,6 +8,7 @@ def write_report(
     event_id: int,
     detected: bool,
     output_path: str = "reports/validation-report.json",
+    **details,
 ) -> None:
     report = {
         "technique": technique_id,
@@ -15,6 +16,7 @@ def write_report(
         "event_id": event_id,
         "detected": detected,
         "result": "PASS" if detected else "FAIL",
+        **{key: value for key, value in details.items() if value is not None},
     }
 
     path = Path(output_path)

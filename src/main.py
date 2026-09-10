@@ -1,65 +1,35 @@
-﻿import time
-
 from atomic_runner import run_controlled_test
-from validator import validate
 from reporter import write_report
-
+from validator import TelemetryUnavailableError, preflight, wait_for_detection
 
 TECHNIQUE_ID = "T1059.001"
 TEST_NAME = "controlled-powershell-marker"
 MARKER = "ADV_DETECTION_VALIDATOR_T1059_001"
+EVENT_ID = 4104
 
 
 def main() -> None:
-    print("=" * 50)
-    print("ADVERSARY DETECTION VALIDATOR")
-    print("=" * 50)
-
-    print("\n[1] Running controlled test...")
-
-    execution = run_controlled_test(
-        test_name=TEST_NAME,
-        technique_id=TECHNIQUE_ID,
-        marker=MARKER,
-    )
-
-    print(f"Test: {execution.test_name}")
-    print(f"Execution successful: {execution.success}")
-
-    if not execution.success:
-        print("\nRESULT: TEST EXECUTION FAILED")
-        print(execution.error)
+    readiness = preflight()
+    if not readiness.ready:
+        print(f"RESULT: PRECHECK FAILED — {readiness.message}")
         return
 
-    print("\n[2] Waiting for telemetry...")
-    time.sleep(2)
+    execution = run_controlled_test(TEST_NAME, TECHNIQUE_ID, MARKER)
+    if not execution.success:
+        print(f"RESULT: TEST EXECUTION FAILED — {execution.error}")
+        return
 
-    print("[3] Validating telemetry...")
+    try:
+        validation = wait_for_detection(TECHNIQUE_ID, EVENT_ID, MARKER, execution.correlation_id, execution.started_at)
+    except TelemetryUnavailableError as error:
+        print(f"RESULT: TELEMETRY UNAVAILABLE — {error}")
+        return
 
-    validation = validate(
-        technique_id=TECHNIQUE_ID,
-        event_id=4104,
-        marker=MARKER,
-    )
-
-    print(f"Detected: {validation.detected}")
-    write_report(
-    technique_id=TECHNIQUE_ID,
-    test_name=TEST_NAME,
-    event_id=4104,
-    detected=validation.detected,
-)
-
-    print("Report: reports/validation-report.json")
-
-    print("\n" + "=" * 50)
-
-    if validation.detected:
-        print("RESULT: PASS")
-    else:
-        print("RESULT: FAIL")
-
-    print("=" * 50)
+    write_report(TECHNIQUE_ID, TEST_NAME, EVENT_ID, validation.detected,
+                 correlation_id=execution.correlation_id, attempts=validation.attempts, evidence=validation.evidence)
+    print(f"RESULT: {'PASS' if validation.detected else 'FAIL'}")
+    if not validation.detected:
+        print("No matching Event ID 4104 telemetry arrived before the validation timeout.")
 
 
 if __name__ == "__main__":
